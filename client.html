@@ -1,0 +1,125 @@
+<html>
+
+<head>
+    <title>Socket io client</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"
+        integrity="sha384-/KNQL8Nu5gCHLqwqfQjA689Hhoqgi2S84SNUxC3roTe4EhJ9AfLkp8QiQcU8AMzI"
+        crossorigin="anonymous"></script>
+    <script>
+        var socket = io("http://127.0.0.1:3000");
+        // use your socket
+        // socket.on("welcome", (message) => {
+        //     // do something with the message.
+        // })
+        setInterval(() => {
+            socket.on('joincommunityroom', (data) => {
+                console.log(data)
+            })
+            socket.on('loadcommunities', (data) => {
+                console.log(data)
+            })
+            socket.on('sendchattocommunities', (data) => {
+                console.log(data)
+            })
+            socket.on('loadmessage', (data) => {
+                console.log(data)
+            })
+            socket.on('profileload', (data) => {
+                console.log(data)
+            })
+            socket.on('sendsocketidtoserver', (data) => {
+                console.log(data)
+            })
+            socket.on('sendnotificationtouser', (data) => {
+                console.log(data)
+            })
+            socket.on('notification', (data) => {
+                console.log(data)
+            })
+            socket.on('sendchattouser', (data) => {
+                console.log(data)
+            })
+            socket.on('loadusermessage', (data) => {
+                console.log(data)
+            })
+            socket.on('loaduserlist', (data) => {
+                console.log(data)
+            })
+            socket.on('changereadstate', (data) => {
+                console.log(data)
+            })
+        }, 1000)
+        function sendmessage() {
+            let jwt = document.getElementById("jwt").value
+            let communityId = document.getElementById("communityId").value
+            let chat = document.getElementById("chat").value
+            socket.emit('sendchattocommunities', { jwt: jwt, chat: chat, communityId: communityId })
+        }
+        function joincommunity() {
+            let jwt = document.getElementById("jwt").value
+            let chat = document.getElementById("chat").value
+            let communityId = document.getElementById("communityId").value
+            socket.emit('joincommunityroom', { jwt: jwt, communityId: communityId })
+        }
+        function loadmessage() {
+            let jwt = document.getElementById("jwt").value
+            let page = document.getElementById("page").value
+            let communityId = document.getElementById("communityId").value
+            socket.emit('loadmessage', { jwt: jwt, communityId: "choco-37a85ff0902311edbb93c10185a54f9e", page: page,id:"64257eaef7c11f23ba41acf2" })
+        }
+        function loadcommunities() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('loadcommunities', { jwt: jwt })
+        }
+        function profileload() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('profileload', { userName: 'coolboy' })
+        }
+        function sendsocketid() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('sendsocketidtoserver', { jwt: jwt })
+        }
+        function notification() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('notification', { jwt: jwt, page: 1 })
+        }
+        function loadusermessage() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('loadusermessage', { jwt: jwt, userName: 'coolboy', page: 1 })
+        }
+        function sendchattouser() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('sendchattouser', { jwt: jwt, userName: 'Chinedu19', chat: 'test' },(res)=>{
+                console.log(res,'----->')
+            })
+        } function loaduserlist() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('loaduserlist', { jwt: jwt })
+        }
+        function changereadstate() {
+            let jwt = document.getElementById("jwt").value
+            socket.emit('changereadstate', { jwt: jwt, userName: 'Dance_singh', id: '6419e76f1a6fa79a0a80d820' })
+        }
+
+    </script>
+</head>
+
+<body>
+    <input type="text" id="jwt" placeholder="jwt" />
+    <input type="text" id="chat" placeholder="chat" />
+    <input type="text" id="page" placeholder="page" />
+    <input type="text" id="communityId" placeholder="communityId" />
+    <button onclick=joincommunity()>joincommunity</button>
+    <button onclick=sendmessage()>sendchattocommunities</button>
+    <button onclick=loadmessage()>loadmessage</button>
+    <button onclick=loadcommunities()>loadcommunities</button>
+    <button onclick=profileload()>profileload</button>
+    <button onclick=sendsocketid()>sendsocketid</button>
+    <button onclick=notification()>notification</button>
+    <button onclick=loadusermessage()>loadusermessage</button>
+    <button onclick=sendchattouser()>sendchattouser</button>
+    <button onclick=loaduserlist()>loaduserlist</button>
+    <button onclick=changereadstate()>changereadstate</button>
+</body>
+
+</html>
