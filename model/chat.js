@@ -11,7 +11,8 @@ const chatSchema = mongoose.Schema({
     chats: [{
         userName: String,
         chat: String,
-        time: Number
+        time: Number,
+        file:String
     }]
 }, { timestamps: true })
 

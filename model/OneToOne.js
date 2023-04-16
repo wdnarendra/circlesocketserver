@@ -5,7 +5,8 @@ const oneToOneSchema = mongoose.Schema({
     chats: [{
         userName: String,
         time: Number,
-        chat: String
+        chat: String,
+        file:String
     }],
     readEd:[{userName:String,read:Number}]
 })

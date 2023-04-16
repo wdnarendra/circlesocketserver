@@ -61,7 +61,8 @@ io.on('connection', function (socket) {
                             userName: user.userName,
                             chat: data.chat,
                             time: Date.now(),
-                            _id: _id
+                            _id: _id,
+                            file: data.file
                         }
                     }
                 })
@@ -72,13 +73,14 @@ io.on('connection', function (socket) {
                         userName: user.userName,
                         chat: data.chat,
                         time: Date.now(),
-                        _id: _id
+                        _id: _id,
+                        file: data.file
                     }], readEd: [{ userName: user.userName, read: 0 }, { userName: data.userName, read: 0 }]
                 }).save()
             }
             const timee = Date.now()
-            cb({ chat: data.chat, time: timee, _id: _id })
-            socket.to(us.socketId).emit('receivechatfromuser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id })
+            cb({ chat: data.chat, time: timee, _id: _id, file: data.file })
+            socket.to(us.socketId).emit('receivechatfromuser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id, file: data.file })
         } catch (error) {
             console.log(error)
             socket.emit('sendchattouser', {})
@@ -189,10 +191,10 @@ io.on('connection', function (socket) {
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
             const _id = new mongoose.Types.ObjectId()
             const timee = Date.now()
-            const chat = await Chat.findOneAndUpdate({ communityId: data.communityId }, { $push: { chats: { userName: user.userName, chat: data.chat, time: Date.now(), _id: _id } } })
+            const chat = await Chat.findOneAndUpdate({ communityId: data.communityId }, { $push: { chats: { userName: user.userName, chat: data.chat, time: Date.now(), _id: _id, file: data.file } } })
             const u = await User.findOne({ userName: user.userName }).lean()
-            callback({ chat: data.chat, time: timee, _id: _id })
-            socket.to(chat.communityId).emit("receivechatfromcommunity", { name: u.name, userName: user.userName, chat: data.chat, time: timee, communityId: data.communityId, profilePath: u.profilePath, _id: _id });
+            callback({ chat: data.chat, time: timee, _id: _id, file: data.file })
+            socket.to(chat.communityId).emit("receivechatfromcommunity", { name: u.name, userName: user.userName, chat: data.chat, time: timee, communityId: data.communityId, profilePath: u.profilePath, _id: _id, file: data.file });
         } catch (error) {
             socket.emit('sendchattocommunities', { msg: 'not sent' })
         }
@@ -204,7 +206,7 @@ io.on('connection', function (socket) {
             let chat = await Chat.aggregate([{ $match: { communityId: data.communityId } }, { $unwind: '$chats' }, { $project: { chats: 1 } }, { $sort: { 'chats.time': -1 } }, { $skip: (data.page - 1) * 10 }, { $limit: 10 }])
             if (chat.length) {
                 console.log(chat.length)
-                const index = chat.findIndex((value) => (value.chats._id ===mongoose.Types.ObjectId(data.id)))
+                const index = chat.findIndex((value) => (value.chats._id === mongoose.Types.ObjectId(data.id)))
                 console.log(index)
                 console.log(chat[9])
             }
