@@ -19,7 +19,7 @@ var io = require('socket.io')(http, {
 require('./utils/mongoose')
 //Whenever someone connects this gets executed
 io.on('connection', function (socket) {
-    socket.on('getunreadmessage', async (data, cb) => {
+    socket.on('getUnreadMessage', async (data, cb) => {
         try {
             const u = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
           const unreadmessage =   await OneToOne.aggregate([
@@ -112,13 +112,13 @@ io.on('connection', function (socket) {
                 },
             },
           ])
-              socket.emit('getunreadmessage',unreadmessage)
+              socket.emit('getUnreadMessage',unreadmessage)
               cb(unreadmessage)
         } catch (err) {
             console.log(err)
         }
     })
-    socket.on('changereadstate', async (data, cb) => {
+    socket.on('changeReadState', async (data, cb) => {
         try {
             const u = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
             const index = await OneToOne.aggregate([{ $match: { userName: [u.userName, data.userName] } }, { $project: { index: { $indexOfArray: ["$chats._id", mongoose.Types.ObjectId(data.id)] } } }])
@@ -129,7 +129,7 @@ io.on('connection', function (socket) {
             // cb(false)
         }
     })
-    socket.on('loaduserlist', async (data, cb) => {
+    socket.on('loadUserList', async (data, cb) => {
         try {
             const temp = []
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
@@ -144,7 +144,7 @@ io.on('connection', function (socket) {
             // cb(false)
         }
     })
-    socket.on('sendchattouser', async (data, cb) => {
+    socket.on('sendChatToUser', async (data, cb) => {
         try {
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
             const us = await UserSocket.findOne({ userName: data.userName })
@@ -180,10 +180,10 @@ io.on('connection', function (socket) {
             socket.to(us.socketId).emit('receivechatfromuser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id, file: data.file })
         } catch (error) {
             console.log(error)
-            socket.emit('sendchattouser', {})
+            socket.emit('sendChatToUser', {})
         }
     })
-    socket.on('loadusermessage', async (data, cb) => {
+    socket.on('loadUserMessage', async (data, cb) => {
         try {
             if (!data.page) data.page = 1
             const limit = 10
@@ -194,13 +194,13 @@ io.on('connection', function (socket) {
                 other: { name: u.name, profilePath: u.profilePath },
                 chats: c
             })
-            // socket.emit('loadusermessage', {
+            // socket.emit('loadUserMessage', {
             //     other: { name: u.name, profilePath: u.profilePath },
             //     chats: c
             // })
         }
         catch (error) {
-            socket.emit('loadusermessage', [])
+            socket.emit('loadUserMessage', [])
         }
     })
     socket.on('notification', async (data) => {
