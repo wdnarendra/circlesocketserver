@@ -19,19 +19,117 @@ var io = require('socket.io')(http, {
 require('./utils/mongoose')
 //Whenever someone connects this gets executed
 io.on('connection', function (socket) {
-    socket.on('changereadstate', async (data) => {
+    socket.on('getunreadmessage', async (data, cb) => {
         try {
             const u = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
-            const index = await OneToOne.aggregate([{ $match: { userName: u.userName, userName: data.userName } }, { $project: { index: { $indexOfArray: ["$readEd._id", mongoose.Types.ObjectId(data.id)] } } }])
-            console.log(index)
-            await OneToOne.findOneAndUpdate({ userName: [u.userName, data.userName], readEd: u.userName }, { $set: { 'readEd.$.read': index[0].index } })
-            socket.emit('changereadstate', true)
-        } catch (error) {
-            console.log(error)
-            socket.emit('changereadstate', false)
+          const unreadmessage =   await OneToOne.aggregate([
+            {
+              $match:
+                /**
+                 * query: The query in MQL.
+                 */
+                {
+                  userName: u.userName,
+                },
+            },
+            {
+              $unwind:
+                /**
+                 * path: Path to the array field.
+                 * includeArrayIndex: Optional name for index.
+                 * preserveNullAndEmptyArrays: Optional
+                 *   toggle to unwind null and empty values.
+                 */
+                {
+                  path: "$readEd",
+                },
+            },
+            {
+              $match:
+                /**
+                 * query: The query in MQL.
+                 */
+                {
+                  "readEd.userName": u.userName,
+                },
+            },
+            {
+              $project:
+                /**
+                 * specifications: The fields to
+                 *   include or exclude.
+                 */
+                {
+                  length: {
+                    $size: "$chats",
+                  },
+                  chats: 1,
+                  userName: 1,
+                  read: "$readEd.read",
+                },
+            },
+            {
+              $project:
+                /**
+                 * specifications: The fields to
+                 *   include or exclude.
+                 */
+                {
+                  chats: {
+                    $slice: ["$chats", "$read", "$length"],
+                  },
+                  userName: 1,
+                },
+            },
+            {
+              $lookup:
+                /**
+                 * from: The target collection.
+                 * localField: The local join field.
+                 * foreignField: The target join field.
+                 * as: The name for the results.
+                 * pipeline: Optional pipeline to run on the foreign collection.
+                 * let: Optional variables to use in the pipeline field stages.
+                 */
+                {
+                  from: "Users",
+                  localField: "userName",
+                  foreignField: "userName",
+                  as: "userName",
+                },
+            },
+            {
+              $project:
+                /**
+                 * specifications: The fields to
+                 *   include or exclude.
+                 */
+                {
+                  chats: 1,
+                  "userName.name": 1,
+                  "userName.profilePath": 1,
+                  "userName.userName": 1,
+                },
+            },
+          ])
+              socket.emit('getunreadmessage',unreadmessage)
+              cb(unreadmessage)
+        } catch (err) {
+            console.log(err)
         }
     })
-    socket.on('loaduserlist', async (data) => {
+    socket.on('changereadstate', async (data, cb) => {
+        try {
+            const u = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
+            const index = await OneToOne.aggregate([{ $match: { userName: [u.userName, data.userName] } }, { $project: { index: { $indexOfArray: ["$chats._id", mongoose.Types.ObjectId(data.id)] } } }])
+            await OneToOne.findOneAndUpdate({ userName: [u.userName, data.userName], 'readEd.userName': u.userName }, { $set: { 'readEd.$.read': index[0]?.index } })
+            cb({ status: true })
+        } catch (error) {
+            console.log(error)
+            // cb(false)
+        }
+    })
+    socket.on('loaduserlist', async (data, cb) => {
         try {
             const temp = []
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
@@ -41,10 +139,9 @@ io.on('connection', function (socket) {
                 const us = await User.findOne({ userName: t }).lean()
                 temp.push(us)
             }
-            socket.emit('loaduserlist', temp)
+            cb(temp)
         } catch (error) {
-            console.log(error)
-            socket.emit('loaduserlist', [])
+            // cb(false)
         }
     })
     socket.on('sendchattouser', async (data, cb) => {
@@ -86,17 +183,21 @@ io.on('connection', function (socket) {
             socket.emit('sendchattouser', {})
         }
     })
-    socket.on('loadusermessage', async (data) => {
+    socket.on('loadusermessage', async (data, cb) => {
         try {
             if (!data.page) data.page = 1
             const limit = 10
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
             const u = await User.findOne({ userName: data.userName }).lean()
             const c = await OneToOne.aggregate([{ $match: { $and: [{ userName: user.userName }, { userName: data.userName }] } }, { $unwind: '$chats' }, { $project: { chats: 1 } }, { $sort: { 'chats.time': -1 } }, { $skip: (data.page - 1) * limit }, { $limit: limit }])
-            socket.emit('loadusermessage', {
+            cb({
                 other: { name: u.name, profilePath: u.profilePath },
                 chats: c
             })
+            // socket.emit('loadusermessage', {
+            //     other: { name: u.name, profilePath: u.profilePath },
+            //     chats: c
+            // })
         }
         catch (error) {
             socket.emit('loadusermessage', [])
