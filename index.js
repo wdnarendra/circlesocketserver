@@ -177,7 +177,7 @@ io.on('connection', function (socket) {
             }
             const timee = Date.now()
             cb({ chat: data.chat, time: timee, _id: _id, file: data.file })
-            socket.to(us.socketId).emit('receivechatfromuser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id, file: data.file })
+            socket.to(us.socketId).emit('receiveChatFromUser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id, file: data.file })
         } catch (error) {
             console.log(error)
             socket.emit('sendChatToUser', {})
