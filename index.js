@@ -139,6 +139,7 @@ io.on('connection', function (socket) {
                 const us = await User.findOne({ userName: t }).lean()
                 temp.push(us)
             }
+            socket.emit('loadUserList',temp)
             cb(temp)
         } catch (error) {
             // cb(false)
