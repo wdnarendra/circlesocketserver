@@ -22,98 +22,98 @@ io.on('connection', function (socket) {
     socket.on('getUnreadMessage', async (data, cb) => {
         try {
             const u = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
-          const unreadmessage =   await OneToOne.aggregate([
-            {
-              $match:
-                /**
-                 * query: The query in MQL.
-                 */
+            const unreadmessage = await OneToOne.aggregate([
                 {
-                  userName: u.userName,
+                    $match:
+                    /**
+                     * query: The query in MQL.
+                     */
+                    {
+                        userName: u.userName,
+                    },
                 },
-            },
-            {
-              $unwind:
-                /**
-                 * path: Path to the array field.
-                 * includeArrayIndex: Optional name for index.
-                 * preserveNullAndEmptyArrays: Optional
-                 *   toggle to unwind null and empty values.
-                 */
                 {
-                  path: "$readEd",
+                    $unwind:
+                    /**
+                     * path: Path to the array field.
+                     * includeArrayIndex: Optional name for index.
+                     * preserveNullAndEmptyArrays: Optional
+                     *   toggle to unwind null and empty values.
+                     */
+                    {
+                        path: "$readEd",
+                    },
                 },
-            },
-            {
-              $match:
-                /**
-                 * query: The query in MQL.
-                 */
                 {
-                  "readEd.userName": u.userName,
+                    $match:
+                    /**
+                     * query: The query in MQL.
+                     */
+                    {
+                        "readEd.userName": u.userName,
+                    },
                 },
-            },
-            {
-              $project:
-                /**
-                 * specifications: The fields to
-                 *   include or exclude.
-                 */
                 {
-                  length: {
-                    $size: "$chats",
-                  },
-                  chats: 1,
-                  userName: 1,
-                  read: "$readEd.read",
+                    $project:
+                    /**
+                     * specifications: The fields to
+                     *   include or exclude.
+                     */
+                    {
+                        length: {
+                            $size: "$chats",
+                        },
+                        chats: 1,
+                        userName: 1,
+                        read: "$readEd.read",
+                    },
                 },
-            },
-            {
-              $project:
-                /**
-                 * specifications: The fields to
-                 *   include or exclude.
-                 */
                 {
-                  chats: {
-                    $slice: ["$chats", "$read", "$length"],
-                  },
-                  userName: 1,
+                    $project:
+                    /**
+                     * specifications: The fields to
+                     *   include or exclude.
+                     */
+                    {
+                        chats: {
+                            $slice: ["$chats", "$read", "$length"],
+                        },
+                        userName: 1,
+                    },
                 },
-            },
-            {
-              $lookup:
-                /**
-                 * from: The target collection.
-                 * localField: The local join field.
-                 * foreignField: The target join field.
-                 * as: The name for the results.
-                 * pipeline: Optional pipeline to run on the foreign collection.
-                 * let: Optional variables to use in the pipeline field stages.
-                 */
                 {
-                  from: "Users",
-                  localField: "userName",
-                  foreignField: "userName",
-                  as: "userName",
+                    $lookup:
+                    /**
+                     * from: The target collection.
+                     * localField: The local join field.
+                     * foreignField: The target join field.
+                     * as: The name for the results.
+                     * pipeline: Optional pipeline to run on the foreign collection.
+                     * let: Optional variables to use in the pipeline field stages.
+                     */
+                    {
+                        from: "Users",
+                        localField: "userName",
+                        foreignField: "userName",
+                        as: "userName",
+                    },
                 },
-            },
-            {
-              $project:
-                /**
-                 * specifications: The fields to
-                 *   include or exclude.
-                 */
                 {
-                  chats: 1,
-                  "userName.name": 1,
-                  "userName.profilePath": 1,
-                  "userName.userName": 1,
+                    $project:
+                    /**
+                     * specifications: The fields to
+                     *   include or exclude.
+                     */
+                    {
+                        chats: 1,
+                        "userName.name": 1,
+                        "userName.profilePath": 1,
+                        "userName.userName": 1,
+                    },
                 },
-            },
-          ])
-              socket.emit('getUnreadMessage',unreadmessage)
-              cb(unreadmessage)
+            ])
+            socket.emit('getUnreadMessage', unreadmessage)
+            cb(unreadmessage)
         } catch (err) {
             console.log(err)
         }
@@ -131,17 +131,21 @@ io.on('connection', function (socket) {
     })
     socket.on('loadUserList', async (data, cb) => {
         try {
-            const temp = []
+            let temp = []
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
-            const userList = await OneToOne.find({ userName: user.userName }, { chats: 0, _id: 0 })
+            const userList = await OneToOne
+                .aggregate([{ $match: { userName: user.userName } }, { $project: { _id: 0 } },
+                { $addFields: { chats: { $lastN: { n: 3, input: "$chats" } } } }])
             for (let i = 0; i < userList.length; i++) {
                 const t = userList[i].userName.filter((value) => (value !== user.userName))[0]
-                const us = await User.findOne({ userName: t }).lean()
+                let us = await User.findOne({ userName: t }).lean()
+                us.chats = userList[i].chats
                 temp.push(us)
             }
-            socket.emit('loadUserList',temp)
             cb(temp)
+            socket.emit('loadUserList', temp)
         } catch (error) {
+            console.log(error)
             // cb(false)
         }
     })
@@ -214,7 +218,7 @@ io.on('connection', function (socket) {
 
 
             cb(c)
-            socket.emit('loadUserMessage', 
+            socket.emit('loadUserMessage',
                 c
             )
         }
