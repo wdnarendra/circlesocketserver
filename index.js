@@ -184,23 +184,42 @@ io.on('connection', function (socket) {
             socket.emit('sendChatToUser', {})
         }
     })
+
     socket.on('loadUserMessage', async (data, cb) => {
         try {
             if (!data.page) data.page = 1
             const limit = 10
             const user = jwt.verify(data.jwt, process.env.JSONSECRETTOKEN)
-            const u = await User.findOne({ userName: data.userName }).lean()
-            const c = await OneToOne.aggregate([{ $match: { $and: [{ userName: user.userName }, { userName: data.userName }] } }, { $unwind: '$chats' }, { $project: { chats: 1 } }, { $sort: { 'chats.time': -1 } }, { $skip: (data.page - 1) * limit }, { $limit: limit }])
-            cb({
-                other: { name: u.name, profilePath: u.profilePath },
-                chats: c
+            const [u, own] = await Promise.all([await User.findOne({ userName: data.userName }).lean(),
+            await User.findOne({ userName: user.userName })])
+            let c = await OneToOne.aggregate([{ $match: { $and: [{ userName: user.userName }, { userName: data.userName }] } }, { $unwind: '$chats' }, { $project: { chats: 1 } }, { $sort: { 'chats.time': -1 } }, {
+                $project: {
+                    userName: "$chats.userName",
+                    chat: "$chats.chat",
+                    time: "$chats.time",
+                    _id: "$chats._id"
+                }
+            }, { $skip: (data.page - 1) * limit }, { $limit: limit }])
+
+            c = c.map((v) => {
+                if (v.userName === u.userName) {
+                    v.name = u.name
+                    v.profilePath = u.profilePath
+                }
+                else {
+                    v.name = own.name
+                    v.profilePath = own.profilePath
+                } return v
             })
-            // socket.emit('loadUserMessage', {
-            //     other: { name: u.name, profilePath: u.profilePath },
-            //     chats: c
-            // })
+
+
+            cb(c)
+            socket.emit('loadUserMessage', 
+                c
+            )
         }
         catch (error) {
+            console.log(error)
             socket.emit('loadUserMessage', [])
         }
     })
