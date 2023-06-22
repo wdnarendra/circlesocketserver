@@ -142,8 +142,8 @@ io.on('connection', function (socket) {
                 us.chats = userList[i].chats
                 temp.push(us)
             }
-            cb(temp)
             socket.emit('loadUserList', temp)
+            cb(temp)
         } catch (error) {
             console.log(error)
             // cb(false)
@@ -181,8 +181,8 @@ io.on('connection', function (socket) {
                 }).save()
             }
             const timee = Date.now()
-            cb({ chat: data.chat, time: timee, _id: _id, file: data.file })
             socket.to(us.socketId).emit('receiveChatFromUser', { name: u.name, userName: user.userName, chat: data.chat, time: timee, profilePath: u.profilePath, _id: _id, file: data.file })
+            cb({ chat: data.chat, time: timee, _id: _id, file: data.file })
         } catch (error) {
             console.log(error)
             socket.emit('sendChatToUser', {})
@@ -217,10 +217,10 @@ io.on('connection', function (socket) {
             })
 
 
-            cb(c)
             socket.emit('loadUserMessage',
-                c
+            c
             )
+            cb(c)
         }
         catch (error) {
             console.log(error)
